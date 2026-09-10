@@ -1,0 +1,10 @@
+experiment_name = "ridge_ecfp_pcmc"
+split_name = "random_v1"
+target = "pCMC"
+
+featurizer = "ecfp"
+model = "ridge"
+
+[parameters]
+alpha = 1.0
+

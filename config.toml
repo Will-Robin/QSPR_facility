@@ -1,0 +1,7 @@
+DB_PATH = "./external/SurfPro2/target/surfpro2.db"
+ML_SUBSET_PATH = "./data/surfpro2_ml_subset.csv"
+ML_DATABASE = "./data/surfpro2_ml.db"
+QUERY_FILE = "queries/extract_ml_subset.sql"
+ML_VIEW_QUERY = "queries/ml_view.sql"
+REPOSITORY_URL = "https://github.com/BigChemistry-RobotLab/SurfPro2.git"
+CLONE_DIR = "external/SurfPro2"
