@@ -347,7 +347,7 @@ def main():
         random_state=42,
     )
 
-    get_data_split(ml_database, output_file, split_name="random_v1")
+    #get_data_split(ml_database, output_file, split_name="random_v1")
 
 
 if __name__ == "__main__":
