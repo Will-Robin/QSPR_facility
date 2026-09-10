@@ -14,6 +14,18 @@ FROM experiment_predictions ep
 JOIN experiments e USING(experiment_id)
 """
 
+rmse_ranking = """
+SELECT
+    e.model,
+    e.parameters_json,
+    e.experiment_hash,
+    em.value as 'root mean squared error'
+FROM experiment_metrics em
+JOIN experiments e USING(experiment_id)
+WHERE em.metric = "rmse"
+ORDER BY em.value;
+"""
+
 
 def main():
     config = toml.loads(Path("config.toml").read_text())
@@ -29,7 +41,7 @@ def main():
         fig, ax = plt.subplots()
         for c, group in df.groupby("experiment_hash"):
             ax.scatter(
-                group.observed, group.predicted, label=group.experiment_name.iloc[0]
+                group.observed, group.predicted, label=group.experiment_hash.iloc[0][:5]
             )
         ax.plot(group.observed, group.observed, "--", c="k")
         plt.legend()

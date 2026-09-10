@@ -1,0 +1,27 @@
+experiment_name = "recreate_surfpro_model_64d"
+
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "attentivefp_head"
+
+[parameters]
+dropout = 0.1
+
+# Encoder
+hidden_channels = 64
+head_hidden_dim = 64
+
+num_layers = 2
+num_timesteps = 2
+
+# Regression head
+out_channels = 64
+n_outputs = 1
+
+# Training
+learning_rate = 0.001
+n_epochs = 300
+
+batch_size = 64

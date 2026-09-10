@@ -11,10 +11,7 @@ class Model:
     estimator = None
 
     def fit(self, dataset):
-        self.estimator.fit(
-            dataset.X_train,
-            dataset.y_train,
-        )
+        self.estimator.fit(dataset.X_train, dataset.y_train)
 
         return self
 

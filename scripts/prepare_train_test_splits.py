@@ -166,7 +166,7 @@ def prepare_split(
     ml_database,
     split_name,
     strategy="random",
-    stratify_column="scaffold",
+    stratify_column="Surfactant_Type",
     test_size=0.15,
     validation_size=0.15,
     random_state=42,
@@ -244,24 +244,11 @@ def prepare_split(
 
         df_splits = pd.concat(
             [
+                pd.DataFrame({"compound_id": train_ids, "split_type": "train"}),
                 pd.DataFrame(
-                    {
-                        "compound_id": train_ids,
-                        "split_type": "train",
-                    }
+                    {"compound_id": validation_ids, "split_type": "validation"}
                 ),
-                pd.DataFrame(
-                    {
-                        "compound_id": validation_ids,
-                        "split_type": "validation",
-                    }
-                ),
-                pd.DataFrame(
-                    {
-                        "compound_id": test_ids,
-                        "split_type": "test",
-                    }
-                ),
+                pd.DataFrame({"compound_id": test_ids, "split_type": "test"}),
             ],
             ignore_index=True,
         )
@@ -270,15 +257,16 @@ def prepare_split(
 
         if strategy == "random":
             df_splits["split_strategy"] = "random"
-
         elif strategy == "stratified":
             df_splits["split_strategy"] = f"stratified:{stratify_column}"
-
         elif strategy == "group":
             df_splits["split_strategy"] = "murcko_scaffold"
+        else:
+            raise ValueError(f"Unknown strategy: {strategy}")
 
         df_splits["random_seed"] = random_state
 
+        # wipe previous version of splitmurcko_scaffold
         conn.execute(
             "DELETE FROM ml_splits WHERE split_name = ?",
             (split_name,),
@@ -316,24 +304,29 @@ def get_data_split(ml_database, output_file_name, split_name="random_v1"):
 
         df.to_csv(output_file_name, index=False)
 
-        """
-        train_df = df[df["split_type"] == "train"]
-        val_df = df[df["split_type"] == "validation"]
-        test_df = df[df["split_type"] == "test"]
-        """
-
 
 def main():
     config = toml.loads(Path("config.toml").read_text())
     ml_database = Path(config["ML_DATABASE"])
-    output_file = Path(config["ML_SUBSET_PATH"])
+
+    test_size = 0.3
+    validation_size = 0.10
+
+    prepare_split(
+        ml_database,
+        split_name="scaffold_split",
+        strategy="group",
+        test_size=test_size,
+        validation_size=validation_size,
+        random_state=42,
+    )
 
     prepare_split(
         ml_database,
         split_name="random_v1",
-        strategy="group",
-        test_size=0.3,
-        validation_size=0.1,
+        strategy="random",
+        test_size=test_size,
+        validation_size=validation_size,
         random_state=42,
     )
 
@@ -342,12 +335,10 @@ def main():
         split_name="surfactant_type_v1",
         strategy="stratified",
         stratify_column="Surfactant_Type",
-        test_size=0.3,
-        validation_size=0.1,
+        test_size=test_size,
+        validation_size=validation_size,
         random_state=42,
     )
-
-    #get_data_split(ml_database, output_file, split_name="random_v1")
 
 
 if __name__ == "__main__":

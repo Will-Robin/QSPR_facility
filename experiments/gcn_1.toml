@@ -1,0 +1,13 @@
+experiment_name = "gcn_64d"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "gcn"
+
+[parameters]
+hidden_channels = 64
+dropout = 0.1
+
+learning_rate = 0.001
+n_epochs = 10
