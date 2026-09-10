@@ -10,7 +10,7 @@ def main():
     ml_database = config["ML_DATABASE"]
 
     # experiment
-    experiment = Experiment.from_toml("experiments/attfp_graph_pcmc.toml")
+    experiment = Experiment.from_toml("experiments/attfp_head_graph_pcmc.toml")
 
     # run
     runner = ExperimentRunner(ml_database)

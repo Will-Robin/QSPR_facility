@@ -9,6 +9,7 @@ from src.ml_models import (
 
 from src.graph_models import (
     AttentiveFPModel,
+    AttentiveFPHeadModel,
     GCNModel,
 )
 
@@ -22,6 +23,7 @@ MODEL_REGISTRY = {
     "svr": SVRModel,
     "mlp": MLPModel,
     "attentivefp": AttentiveFPModel,
+    "attentivefp_head": AttentiveFPHeadModel,
     "gcn": GCNModel,
 }
 

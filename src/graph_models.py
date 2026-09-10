@@ -5,6 +5,7 @@ from src.dataloader import GraphDataset
 
 from torch_geometric.loader import DataLoader
 import torch.nn.functional as F
+from torch import nn
 
 from torch.nn import Linear
 
@@ -206,3 +207,123 @@ class AttentiveFPModel(GraphModel):
             batch.edge_attr,
             batch.batch,
         )
+
+
+class RegressionHead(torch.nn.Module):
+    def __init__(
+        self,
+        n_outputs,
+        hidden_dim,
+        dropout,
+        dim,
+    ):
+        super().__init__()
+
+        self.dropout = nn.Dropout(dropout)
+
+        self.norm = nn.LayerNorm(dim)
+
+        self.fc1 = nn.Linear(dim, hidden_dim)
+
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+
+        self.fc3 = nn.Linear(hidden_dim, n_outputs)
+
+    def forward(self, x):
+        x = self.norm(x)
+
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc2(x))
+        x = self.dropout(x)
+
+        return self.fc3(x)
+
+
+class AttentiveFPHeadNet(torch.nn.Module):
+    def __init__(
+        self,
+        num_node_features,
+        num_edge_features,
+        n_outputs=1,
+        hidden_channels=64,
+        head_hidden_dim=64,
+        out_channels=128,
+        num_layers=2,
+        num_timesteps=2,
+        dropout=0.1,
+    ):
+        super().__init__()
+
+        self.encoder = AttentiveFP(
+            in_channels=num_node_features,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            edge_dim=num_edge_features,
+            num_layers=num_layers,
+            num_timesteps=num_timesteps,
+            dropout=dropout,
+        )
+
+        self.head = RegressionHead(
+            n_outputs=n_outputs,
+            hidden_dim=head_hidden_dim,
+            dim=out_channels,
+            dropout=dropout,
+        )
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        embeddings = self.encoder(x, edge_index, edge_attr, batch)
+
+        return self.head(embeddings)
+
+    def encode(self, x, edge_index, edge_attr, batch):
+        """
+        embeddings = model.network.encode(...)
+        """
+        return self.encoder(
+            x,
+            edge_index,
+            edge_attr,
+            batch,
+        )
+
+
+class AttentiveFPHeadModel(GraphModel):
+    def __init__(
+        self,
+        hidden_channels=64,
+        head_hidden_dim=64,
+        out_channels=128,
+        num_layers=2,
+        num_timesteps=2,
+        dropout=0.1,
+        n_outputs=1,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.hidden_channels = hidden_channels
+        self.head_hidden_dim = head_hidden_dim
+        self.out_channels = out_channels
+        self.num_layers = num_layers
+        self.num_timesteps = num_timesteps
+        self.dropout = dropout
+        self.n_outputs = n_outputs
+
+    def build_network(self, dataset):
+        return AttentiveFPHeadNet(
+            num_node_features=dataset.num_node_features,
+            num_edge_features=dataset.num_edge_features,
+            n_outputs=self.n_outputs,
+            hidden_channels=self.hidden_channels,
+            head_hidden_dim=self.head_hidden_dim,
+            out_channels=self.out_channels,
+            num_layers=self.num_layers,
+            num_timesteps=self.num_timesteps,
+            dropout=self.dropout,
+        )
+
+    def forward(self, batch):
+        return self.network(batch.x, batch.edge_index, batch.edge_attr, batch.batch)
