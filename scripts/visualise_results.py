@@ -31,6 +31,7 @@ def main():
             ax.scatter(
                 group.observed, group.predicted, label=group.experiment_name.iloc[0]
             )
+        ax.plot(group.observed, group.observed, "--", c="k")
         plt.legend()
         plt.show()
 

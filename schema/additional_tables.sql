@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS ml_splits (
-	split_name TEXT NOT NULL,
-	compound_id INTEGER NOT NULL,
-	split_type TEXT NOT NULL,
-	split_strategy TEXT NOT NULL,
-	random_seed INTEGER,
+    split_name TEXT NOT NULL,
+    compound_id INTEGER NOT NULL,
+    split_type TEXT NOT NULL,
+    split_strategy TEXT NOT NULL,
+    random_seed INTEGER,
 
-	PRIMARY KEY (split_name, compound_id),
-	FOREIGN KEY (compound_id)
-	    REFERENCES compounds(compound_id)
+    PRIMARY KEY (split_name, compound_id),
+    FOREIGN KEY (compound_id)
+        REFERENCES compounds(compound_id)
 );
 
 CREATE TABLE IF NOT EXISTS experiments (
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS experiment_metrics (
     value REAL,
 
     FOREIGN KEY (experiment_id)
-	REFERENCES experiments(experiment_id)
+        REFERENCES experiments(experiment_id)
 );
 
 CREATE TABLE IF NOT EXISTS experiment_predictions (
@@ -51,6 +51,6 @@ CREATE TABLE IF NOT EXISTS experiment_predictions (
     predicted REAL,
 
     FOREIGN KEY (experiment_id)
-	REFERENCES experiments(experiment_id)
+       REFERENCES experiments(experiment_id)
 );
 
