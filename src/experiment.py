@@ -221,3 +221,22 @@ class ExperimentRunner:
                 None,
             ),
         )
+
+
+def experiment_exists(ml_database, experiment):
+    result = None
+    with sqlite3.connect(ml_database) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT 1
+            FROM experiments
+            WHERE experiment_hash = ?
+            """,
+            (experiment.experiment_hash,),
+        )
+
+        result = cursor.fetchone() is not None
+
+    return result

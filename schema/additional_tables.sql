@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS experiments (
 
     experiment_name TEXT,
 
-    experiment_hash TEXT,
+    experiment_hash TEXT UNIQUE,
 
     source_file TEXT,
 
@@ -54,3 +54,4 @@ CREATE TABLE IF NOT EXISTS experiment_predictions (
        REFERENCES experiments(experiment_id)
 );
 
+CREATE UNIQUE INDEX idx_experiment_hash ON experiments(experiment_hash);
