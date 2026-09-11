@@ -6,11 +6,12 @@ featurizer = "graph"
 model = "gcn_head"
 
 [parameters]
-hidden_channels = 350
+hidden_channels = 64
 embedding_dim = 128
 head_hidden_dim = 64
 dropout = 0.1
 n_outputs = 1
+
 
 [training]
 include_validation = true
