@@ -1,13 +1,9 @@
-experiment_name = "ridge_ecfp_pcmc"
+experiment_name = "rdkit_descriptors_ridge"
 split_name = "surfactant_type_v1"
 target = "pCMC"
 
-featurizer = "ecfp"
+featurizer = "descriptor"
 model = "ridge"
-
-[featurizer_parameters]
-radius = 2
-n_bits = 2048
 
 [parameters]
 alpha = 1.0

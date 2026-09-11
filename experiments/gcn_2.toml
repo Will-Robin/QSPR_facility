@@ -13,4 +13,3 @@ include_validation = true
 learning_rate = 0.001
 n_epochs = 300
 batch_size = 24
-

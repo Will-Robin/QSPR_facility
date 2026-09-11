@@ -6,7 +6,7 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors
 from dataclasses import dataclass
 from torch_geometric.data import Data
-
+from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 
@@ -140,18 +140,13 @@ class Featurizer:
 class DescriptorFeaturizer(Featurizer):
     output_type = VectorDataset
 
-    DESCRIPTORS = {
-        "MolWt": Descriptors.MolWt,
-        "TPSA": Descriptors.TPSA,
-        "MolLogP": Descriptors.MolLogP,
-        "NumHDonors": Descriptors.NumHDonors,
-        "NumHAcceptors": Descriptors.NumHAcceptors,
-    }
+    DESCRIPTOR_NAMES = [d[0] for d in Descriptors._descList if "BCUT" not in d[0]]
+
+    FEATURIZER = MoleculeDescriptors.MolecularDescriptorCalculator(DESCRIPTOR_NAMES)
 
     def featurize_smiles(self, smiles):
         mol = Chem.MolFromSmiles(smiles)
-
-        return [f(mol) for f in self.DESCRIPTORS.values()]
+        return self.FEATURIZER.CalcDescriptors(mol)
 
     def transform(
         self,
@@ -162,7 +157,7 @@ class DescriptorFeaturizer(Featurizer):
         val_df = dataset.validation
         test_df = dataset.test
 
-        feature_names = list(self.DESCRIPTORS.keys())
+        feature_names = self.DESCRIPTOR_NAMES
 
         X_train = np.array([self.featurize_smiles(s) for s in train_df["SMILES"]])
 

@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from src.registry import MODEL_REGISTRY, FEATURIZER_REGISTRY
 from src.dataloader import SQLiteDataLoader
 
+MODEL_TRAINING_KEYS = {
+    "learning_rate",
+    "batch_size",
+    "n_epochs",
+}
+
 
 @dataclass
 class Experiment:
@@ -19,6 +25,8 @@ class Experiment:
     target: str
 
     featurizer: str
+    featurizer_parameters: dict
+
     model: str
 
     parameters: dict
@@ -35,14 +43,27 @@ class Experiment:
 
         config = toml.loads(raw_toml)
 
+        featurizer_parameters = config.get(
+            "featurizer_parameters",
+            {},
+        )
+
+        parameters = config.get(
+            "parameters",
+            {},
+        )
+
+        training = config.get("training", {})
+
         return cls(
             experiment_name=config["experiment_name"],
             split_name=config["split_name"],
             target=config["target"],
             featurizer=config["featurizer"],
+            featurizer_parameters=featurizer_parameters,
             model=config["model"],
-            parameters=config["parameters"],
-            training=config.get("training", {}),
+            parameters=parameters,
+            training=training,
             raw_toml=raw_toml,
             source_file=str(path),
         )
@@ -53,6 +74,7 @@ class Experiment:
             "split_name": self.split_name,
             "target": self.target,
             "featurizer": self.featurizer,
+            "featurizer_parameters": self.featurizer_parameters,
             "model": self.model,
             "parameters": self.parameters,
             "training": self.training,
@@ -71,6 +93,7 @@ class Experiment:
             "split_name": self.split_name,
             "target": self.target,
             "featurizer": self.featurizer,
+            "featurizer_parameters": self.featurizer_parameters,
             "model": self.model,
             "parameters": self.parameters,
             "experiment_hash": self.experiment_hash,
@@ -104,13 +127,14 @@ class ExperimentResult:
                     split_name,
                     target,
                     featurizer,
+                    featurizer_parameters_json,
                     model,
                     parameters_json,
                     training_json,
                     raw_toml,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self.experiment.experiment_name,
@@ -119,6 +143,7 @@ class ExperimentResult:
                     self.experiment.split_name,
                     self.experiment.target,
                     self.experiment.featurizer,
+                    json.dumps(self.experiment.featurizer_parameters),
                     self.experiment.model,
                     json.dumps(self.experiment.parameters),
                     json.dumps(self.experiment.training),
@@ -204,7 +229,9 @@ class ExperimentRunner:
             target=experiment.target,
         )
 
-        featurizer = FEATURIZER_REGISTRY[experiment.featurizer]()
+        featurizer = FEATURIZER_REGISTRY[experiment.featurizer](
+            **experiment.featurizer_parameters
+        )
 
         representation = featurizer.transform(dataset, target=experiment.target)
 
@@ -216,7 +243,10 @@ class ExperimentRunner:
 
         model_kwargs.update(experiment.parameters)
 
-        model_kwargs.update(experiment.training)
+        for key in MODEL_TRAINING_KEYS:
+            if key in experiment.training:
+                model_kwargs[key] = experiment.training[key]
+
         model_kwargs.pop("include_validation", False)
 
         model = MODEL_REGISTRY[experiment.model](**model_kwargs)

@@ -17,6 +17,12 @@ from torch_geometric.nn.models import AttentiveFP
 class GraphModel(Model):
     input_type = GraphDataset
 
+    TRAINING_PARAMETERS = {
+        "learning_rate",
+        "batch_size",
+        "n_epochs",
+    }
+
     def __init__(
         self,
         batch_size=32,

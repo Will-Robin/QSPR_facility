@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS experiments (
     split_name TEXT,
     target TEXT,
     featurizer TEXT,
+    featurizer_parameters_json TEXT,
     model TEXT,
     parameters_json TEXT,
     raw_toml TEXT,

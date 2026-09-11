@@ -21,16 +21,21 @@ def run_design(filename, ml_database):
     experiment = Experiment.from_toml(filename)
 
     if experiment_exists(ml_database, experiment):
-        print(f"Skipping {experiment.experiment_name}")
+        print(f"Skipping {experiment.experiment_name}.")
     else:
+        print(f"Running {experiment.experiment_name}.")
         run_experiment(experiment, ml_database)
 
 
 def main():
     config = toml.loads(Path("config.toml").read_text())
     ml_database = config["ML_DATABASE"]
-    design_file = "experiments/ridge_ecfp_pcmc.toml"
-    run_design(design_file, ml_database)
+
+    design_files = [
+        file for file in Path("experiments").iterdir() if file.suffix == ".toml"
+    ]
+    for des_file in design_files:
+        run_design(des_file, ml_database)
 
 
 if __name__ == "__main__":

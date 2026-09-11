@@ -10,6 +10,8 @@ class Model:
 
     estimator = None
 
+    TRAINING_PARAMETERS = set()
+
     def fit(self, dataset, include_validation=False):
         X_train, y_train = dataset.get_training_data(
             include_validation=include_validation

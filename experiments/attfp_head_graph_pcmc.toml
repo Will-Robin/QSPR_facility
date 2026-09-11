@@ -1,6 +1,6 @@
 experiment_name = "attfp_head_graph_pcmc"
 
-split_name = "random_v1"
+split_name = "surfactant_type_v1"
 target = "pCMC"
 
 featurizer = "graph"
@@ -21,7 +21,7 @@ out_channels = 128
 n_outputs = 1
 
 [training]
-learning_rate = 0.001
-n_epochs = 500
-batch_size = 32
 include_validation = true
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 24

@@ -1,5 +1,5 @@
 experiment_name = "attfp_graph_pcmc"
-split_name = "random_v1"
+split_name = "surfactant_type_v1"
 target = "pCMC"
 
 featurizer = "graph"
@@ -7,7 +7,7 @@ model = "attentivefp"
 
 [parameters]
 hidden_channels = 64
-out_channels = 128
+out_channels = 1
 num_layers = 2
 num_timesteps = 2
 dropout = 0.1
@@ -15,6 +15,6 @@ dropout = 0.1
 [training]
 include_validation = true
 learning_rate = 0.001
-n_epochs = 10
+n_epochs = 300
 batch_size = 24
 
