@@ -16,3 +16,11 @@ These can be run any time:
 
 If you want to start modelling from scratch after trying some things, this wipes all previous runs.
 4. `experiment_cleaner.py`
+
+Things to implement:
+
+1. GIN
+2. GINE
+3. configurable-depth GCN
+4. GAT
+5. TransformerConv
