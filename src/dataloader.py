@@ -180,13 +180,10 @@ class DescriptorFeaturizer(Featurizer):
 
 
 class ECFPFeaturizer(Featurizer):
-    def __init__(
-        self,
-        radius=2,
-        n_bits=2048,
-    ):
+    def __init__(self, radius=2, n_bits=2048, count_based=False):
         self.radius = radius
         self.n_bits = n_bits
+        self.count_based = count_based
 
         self.generator = GetMorganGenerator(
             radius=radius,
@@ -196,7 +193,16 @@ class ECFPFeaturizer(Featurizer):
     def featurize_smiles(self, smiles):
         mol = Chem.MolFromSmiles(smiles)
 
-        fp = self.generator.GetFingerprint(mol)
+        if self.count_based:
+            sp_fp = self.generator.GetCountFingerprint(mol)
+
+            fp = np.zeros(self.n_bits, dtype=np.int32)
+
+            for idx, count in sp_fp.GetNonzeroElements().items():
+                fp[idx] = count
+
+        else:
+            fp = self.generator.GetFingerprint(mol)
 
         return np.array(fp)
 
