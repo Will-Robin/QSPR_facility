@@ -239,34 +239,66 @@ class GraphFeaturizer(Featurizer):
         self,
         smiles,
         y=None,
+        use_chirality=True,
     ):
         mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            raise ValueError(f"Invalid SMILES: {smiles}")
 
         atom_features = []
 
         for atom in mol.GetAtoms():
-            atom_features.append(
-                [
-                    atom.GetAtomicNum(),
-                    atom.GetDegree(),
-                    atom.GetFormalCharge(),
-                    atom.GetHybridization(),
-                    atom.GetIsAromatic(),
-                ]
-            )
+            hybridisation = atom.GetHybridization()
+
+            features = [
+                atom.GetAtomicNum(),
+                atom.GetDegree(),
+                atom.GetFormalCharge(),
+                int(atom.GetIsAromatic()),
+                atom.GetNumRadicalElectrons(),
+                atom.GetTotalNumHs(),
+            ]
+
+            known_hybridisations = [
+                Chem.rdchem.HybridizationType.SP,
+                Chem.rdchem.HybridizationType.SP2,
+                Chem.rdchem.HybridizationType.SP3,
+                Chem.rdchem.HybridizationType.SP3D,
+                Chem.rdchem.HybridizationType.SP3D2,
+            ]
+
+            features += [int(hybridisation == x) for x in known_hybridisations]
+
+            features.append(int(hybridisation not in known_hybridisations))
+
+            atom_features.append(features)
+
         edge_index = []
         edge_attr = []
 
         for bond in mol.GetBonds():
             i = bond.GetBeginAtomIdx()
             j = bond.GetEndAtomIdx()
+            bond_type = bond.GetBondType()
+            bond_stereo = str(bond.GetStereo())
 
             features = [
                 bond.GetBondTypeAsDouble(),
                 int(bond.GetIsAromatic()),
                 int(bond.GetIsConjugated()),
                 int(bond.IsInRing()),
+                int(bond_type == Chem.rdchem.BondType.SINGLE),
+                int(bond_type == Chem.rdchem.BondType.DOUBLE),
+                int(bond_type == Chem.rdchem.BondType.TRIPLE),
+                int(bond_type == Chem.rdchem.BondType.AROMATIC),
             ]
+
+            if use_chirality:
+                features += [
+                    int(bond_stereo == x)
+                    for x in ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
+                ]
 
             edge_index.append([i, j])
             edge_attr.append(features)
