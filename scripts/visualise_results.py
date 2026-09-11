@@ -41,7 +41,10 @@ def main():
         fig, ax = plt.subplots()
         for c, group in df.groupby("experiment_hash"):
             ax.scatter(
-                group.observed, group.predicted, label=group.experiment_hash.iloc[0][:5]
+                group.observed,
+                group.predicted,
+                label=group.experiment_hash.iloc[0][:5],
+                alpha=0.5,
             )
         ax.plot(group.observed, group.observed, "--", c="k")
         plt.legend()
