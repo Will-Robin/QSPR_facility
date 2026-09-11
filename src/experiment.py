@@ -68,6 +68,26 @@ class Experiment:
             source_file=str(path),
         )
 
+    @classmethod
+    def from_database_row(cls, row):
+        return cls(
+            experiment_name=row["experiment_name"],
+            split_name=row["split_name"],
+            target=row["target"],
+            featurizer=row["featurizer"],
+            featurizer_parameters=json.loads(
+                row["featurizer_parameters_json"]
+            ),
+            model=row["model"],
+            parameters=json.loads(
+                row["parameters_json"]
+            ),
+            training=json.loads(
+                row["training_json"]
+            ),
+            raw_toml=row["raw_toml"],
+        )
+
     @property
     def experiment_hash(self):
         payload = {
