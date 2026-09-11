@@ -7,10 +7,14 @@ from src.ml_models import (
     MLPModel,
 )
 
-from src.graph_models import (
+from src.graph_neural_networks.AttentiveFP import (
     AttentiveFPModel,
     AttentiveFPHeadModel,
+)
+
+from src.graph_neural_networks.GCN import (
     GCNModel,
+    GCNHeadModel,
 )
 
 from src.dataloader import ECFPFeaturizer, DescriptorFeaturizer, GraphFeaturizer
@@ -25,6 +29,7 @@ MODEL_REGISTRY = {
     "attentivefp": AttentiveFPModel,
     "attentivefp_head": AttentiveFPHeadModel,
     "gcn": GCNModel,
+    "gcn_head": GCNHeadModel,
 }
 
 
