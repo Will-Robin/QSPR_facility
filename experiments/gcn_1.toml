@@ -9,5 +9,7 @@ model = "gcn"
 hidden_channels = 64
 dropout = 0.1
 
+[training]
+include_validation = true
 learning_rate = 0.001
 n_epochs = 10

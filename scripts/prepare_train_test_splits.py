@@ -12,14 +12,32 @@ set?
 """
 
 import toml
+import json
 import sqlite3
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.model_selection import StratifiedGroupKFold
+from hashlib import sha256
+
+VALID_SPLIT_STRATEGIES = {
+    "random",
+    "stratified",
+    "murcko_scaffold",
+}
+
+
+def create_split_hash(split_definition):
+    return sha256(
+        json.dumps(
+            split_definition,
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
 
 
 def get_murcko_scaffold(smiles):
@@ -162,15 +180,173 @@ def scaffold_split(
     return train_ids, validation_ids, test_ids
 
 
-def prepare_split(
-    ml_database,
+def validate_split_definition(split_definition):
+    if split_definition["strategy"] not in VALID_SPLIT_STRATEGIES:
+        raise ValueError(f"Unknown strategy: {split_definition['strategy']}")
+
+    test_size = split_definition["test_size"]
+    validation_size = split_definition["validation_size"]
+
+    if test_size <= 0 or validation_size <= 0:
+        raise ValueError("Split sizes must be positive")
+
+    if test_size + validation_size >= 1:
+        raise ValueError("test_size + validation_size must be less than 1")
+
+
+def get_required_columns(split_definition):
+    strategy = split_definition["strategy"]
+
+    columns = ["compound_id"]
+    stratify_column = split_definition.get("stratify_column")
+
+    if strategy == "murcko_scaffold":
+        columns.append("SMILES")
+
+    if strategy == "stratified":
+        columns.append(stratify_column)
+
+    return columns
+
+
+def load_split_data(conn, split_definition):
+    columns = get_required_columns(split_definition)
+
+    return pd.read_sql_query(
+        f"""
+        SELECT
+            {",".join(columns)}
+        FROM compounds
+        ORDER BY compound_id
+        """,
+        conn,
+    )
+
+
+def generate_split(df, split_definition):
+    ids = df["compound_id"]
+
+    strategy = split_definition["strategy"]
+    test_size = split_definition["test_size"]
+    validation_size = split_definition["validation_size"]
+    random_state = split_definition["random_seed"]
+    stratify_column = split_definition.get("stratify_column")
+
+    if strategy == "random":
+        train_ids, validation_ids, test_ids = random_split(
+            ids,
+            test_size,
+            validation_size,
+            random_state,
+        )
+
+    elif strategy == "stratified":
+        train_ids, validation_ids, test_ids = stratified_split(
+            df,
+            ids,
+            stratify_column,
+            test_size,
+            validation_size,
+            random_state,
+        )
+
+    elif strategy == "murcko_scaffold":
+        train_ids, validation_ids, test_ids = scaffold_split(
+            df,
+            ids,
+            test_size,
+            validation_size,
+            random_state,
+        )
+
+    else:
+        raise ValueError(f"Unknown strategy: {strategy}")
+
+    return train_ids, validation_ids, test_ids
+
+
+def build_split_dataframe(
+    train_ids,
+    validation_ids,
+    test_ids,
     split_name,
-    strategy="random",
-    stratify_column="Surfactant_Type",
-    test_size=0.15,
-    validation_size=0.15,
-    random_state=42,
+    split_hash,
+    split_definition,
 ):
+    strategy = split_definition["strategy"]
+    random_state = split_definition["random_seed"]
+
+    df_splits = pd.concat(
+        [
+            pd.DataFrame({"compound_id": train_ids, "split_type": "train"}),
+            pd.DataFrame({"compound_id": validation_ids, "split_type": "validation"}),
+            pd.DataFrame({"compound_id": test_ids, "split_type": "test"}),
+        ],
+        ignore_index=True,
+    )
+
+    df_splits["split_name"] = split_name
+    df_splits["split_strategy"] = strategy
+
+    df_splits["random_seed"] = random_state
+    df_splits["split_hash"] = split_hash
+
+    return df_splits
+
+
+def store_split(
+    conn,
+    split_name,
+    split_hash,
+    split_definition,
+    df_splits,
+):
+    # wipe previous version of splitmurcko_scaffold
+    conn.execute(
+        "DELETE FROM ml_splits WHERE split_name = ?",
+        (split_name,),
+    )
+
+    conn.execute(
+        """
+        DELETE FROM split_definitions
+        WHERE split_name = ?
+        """,
+        (split_name,),
+    )
+
+    conn.execute(
+        """
+        INSERT INTO split_definitions (
+            split_name,
+            split_hash,
+            split_strategy,
+            split_definition_json,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            split_name,
+            split_hash,
+            split_definition["strategy"],
+            json.dumps(
+                split_definition,
+                sort_keys=True,
+            ),
+            datetime.now().isoformat(),
+        ),
+    )
+
+    df_splits.to_sql(
+        "ml_splits",
+        conn,
+        if_exists="append",
+        index=False,
+    )
+
+
+def prepare_split(ml_database, split_name, split_definition):
     """
     Create and store a train/validation/test split.
 
@@ -179,104 +355,28 @@ def prepare_split(
         stratified
     """
 
-    if test_size <= 0 or validation_size <= 0:
-        raise ValueError("Split sizes must be positive")
+    validate_split_definition(split_definition)
 
-    if test_size + validation_size >= 1:
-        raise ValueError("test_size + validation_size must be less than 1")
+    split_hash = create_split_hash(split_definition)
 
     with sqlite3.connect(ml_database) as conn:
-        # prepare columns
-        columns = ["compound_id"]
+        df = load_split_data(conn, split_definition)
+        train_ids, validation_ids, test_ids = generate_split(df, split_definition)
+        df_splits = build_split_dataframe(
+            train_ids,
+            validation_ids,
+            test_ids,
+            split_name,
+            split_hash,
+            split_definition,
+        )
 
-        if strategy == "group":
-            columns.append("SMILES")
-
-        if strategy == "stratified":
-            if stratify_column is None:
-                raise ValueError(
-                    "stratify_column must be supplied for stratified splits"
-                )
-            columns.append(stratify_column)
-
-        # collect data
-        df = pd.read_sql_query(
-            f"""
-            SELECT
-                {",".join(columns)}
-            FROM compounds
-            ORDER BY compound_id
-            """,
+        store_split(
             conn,
-        )
-
-        ids = df["compound_id"]
-
-        if strategy == "random":
-            train_ids, validation_ids, test_ids = random_split(
-                ids,
-                test_size,
-                validation_size,
-                random_state,
-            )
-
-        elif strategy == "stratified":
-            train_ids, validation_ids, test_ids = stratified_split(
-                df,
-                ids,
-                stratify_column,
-                test_size,
-                validation_size,
-                random_state,
-            )
-
-        elif strategy == "group":
-            train_ids, validation_ids, test_ids = scaffold_split(
-                df,
-                ids,
-                test_size,
-                validation_size,
-                random_state,
-            )
-
-        else:
-            raise ValueError(f"Unknown strategy: {strategy}")
-
-        df_splits = pd.concat(
-            [
-                pd.DataFrame({"compound_id": train_ids, "split_type": "train"}),
-                pd.DataFrame(
-                    {"compound_id": validation_ids, "split_type": "validation"}
-                ),
-                pd.DataFrame({"compound_id": test_ids, "split_type": "test"}),
-            ],
-            ignore_index=True,
-        )
-
-        df_splits["split_name"] = split_name
-
-        if strategy == "random":
-            df_splits["split_strategy"] = "random"
-        elif strategy == "stratified":
-            df_splits["split_strategy"] = f"stratified:{stratify_column}"
-        elif strategy == "group":
-            df_splits["split_strategy"] = "murcko_scaffold"
-        else:
-            raise ValueError(f"Unknown strategy: {strategy}")
-
-        df_splits["random_seed"] = random_state
-
-        # wipe previous version of splitmurcko_scaffold
-        conn.execute(
-            "DELETE FROM ml_splits WHERE split_name = ?",
-            (split_name,),
-        )
-
-        df_splits.to_sql(
-            "ml_splits",
-            conn,
-            if_exists="append",
-            index=False,
+            split_name,
+            split_hash,
+            split_definition,
+            df_splits,
         )
 
 
@@ -308,37 +408,12 @@ def get_data_split(ml_database, output_file_name, split_name="random_v1"):
 def main():
     config = toml.loads(Path("config.toml").read_text())
     ml_database = Path(config["ML_DATABASE"])
+    split_file = Path(config["SPLIT_DEFINITIONS"])
 
-    test_size = 0.3
-    validation_size = 0.10
+    split_definitions = json.loads(split_file.read_text())
 
-    prepare_split(
-        ml_database,
-        split_name="scaffold_split",
-        strategy="group",
-        test_size=test_size,
-        validation_size=validation_size,
-        random_state=42,
-    )
-
-    prepare_split(
-        ml_database,
-        split_name="random_v1",
-        strategy="random",
-        test_size=test_size,
-        validation_size=validation_size,
-        random_state=42,
-    )
-
-    prepare_split(
-        ml_database,
-        split_name="surfactant_type_v1",
-        strategy="stratified",
-        stratify_column="Surfactant_Type",
-        test_size=test_size,
-        validation_size=validation_size,
-        random_state=42,
-    )
+    for split_name, split_definition in split_definitions.items():
+        prepare_split(ml_database, split_name, split_definition)
 
 
 if __name__ == "__main__":

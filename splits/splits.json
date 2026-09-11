@@ -1,0 +1,22 @@
+{
+    "scaffold_v1": {
+        "strategy": "murcko_scaffold",
+        "test_size": 0.3,
+        "validation_size": 0.1,
+        "random_seed": 42
+    },
+    "surfactant_type_v1": {
+        "strategy": "stratified",
+        "stratify_column": "Surfactant_Type",
+        "test_size": 0.3,
+        "validation_size": 0.1,
+        "random_seed": 42
+    },
+    "random_v1": {
+        "strategy": "random",
+        "stratify_column": "",
+        "test_size": 0.3,
+        "validation_size": 0.1,
+        "random_seed": 42
+    }
+}

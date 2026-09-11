@@ -37,9 +37,9 @@ class GraphModel(Model):
 
         self.loss_fn = torch.nn.MSELoss()
 
-    def make_train_loader(self, dataset):
+    def make_train_loader(self, dataset, include_validation=False):
         return DataLoader(
-            dataset.train_graphs,
+            dataset.get_training_graphs(include_validation=include_validation),
             batch_size=self.batch_size,
             shuffle=True,
         )
@@ -53,7 +53,7 @@ class GraphModel(Model):
 
     def make_test_loader(self, dataset):
         return DataLoader(
-            dataset.test_graphs,
+            dataset.get_test_graphs(),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -64,8 +64,13 @@ class GraphModel(Model):
     def forward(self, batch):
         raise NotImplementedError
 
-    def fit(self, dataset):
-        train_loader = self.make_train_loader(dataset)
+    def fit(self, dataset, include_validation=False):
+
+        self.training_loss = []
+
+        train_loader = self.make_train_loader(
+            dataset, include_validation=include_validation
+        )
 
         self.network = self.build_network(dataset).to(self.device)
 

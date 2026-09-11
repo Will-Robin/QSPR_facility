@@ -8,3 +8,5 @@ model = "ridge"
 [parameters]
 alpha = 1.0
 
+[training]
+include_validation = true

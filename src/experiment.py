@@ -23,6 +23,8 @@ class Experiment:
 
     parameters: dict
 
+    training: dict
+
     raw_toml: str | None = None
 
     source_file: str | None = None
@@ -40,6 +42,7 @@ class Experiment:
             featurizer=config["featurizer"],
             model=config["model"],
             parameters=config["parameters"],
+            training=config.get("training", {}),
             raw_toml=raw_toml,
             source_file=str(path),
         )
@@ -52,6 +55,7 @@ class Experiment:
             "featurizer": self.featurizer,
             "model": self.model,
             "parameters": self.parameters,
+            "training": self.training,
         }
 
         return hashlib.sha256(
@@ -70,6 +74,7 @@ class Experiment:
             "model": self.model,
             "parameters": self.parameters,
             "experiment_hash": self.experiment_hash,
+            "training": self.training,
         }
 
 
@@ -101,10 +106,11 @@ class ExperimentResult:
                     featurizer,
                     model,
                     parameters_json,
+                    training_json,
                     raw_toml,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self.experiment.experiment_name,
@@ -115,6 +121,7 @@ class ExperimentResult:
                     self.experiment.featurizer,
                     self.experiment.model,
                     json.dumps(self.experiment.parameters),
+                    json.dumps(self.experiment.training),
                     self.experiment.raw_toml,
                     datetime.now().isoformat(),
                 ),
@@ -201,9 +208,20 @@ class ExperimentRunner:
 
         representation = featurizer.transform(dataset, target=experiment.target)
 
-        model = MODEL_REGISTRY[experiment.model](**experiment.parameters)
+        training_options = experiment.training
 
-        model.fit(representation)
+        include_validation = training_options.get("include_validation", False)
+
+        model_kwargs = {}
+
+        model_kwargs.update(experiment.parameters)
+
+        model_kwargs.update(experiment.training)
+        model_kwargs.pop("include_validation", False)
+
+        model = MODEL_REGISTRY[experiment.model](**model_kwargs)
+
+        model.fit(representation, include_validation=include_validation)
 
         metrics = model.evaluate(representation)
 

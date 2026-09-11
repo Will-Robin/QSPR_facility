@@ -34,12 +34,43 @@ class VectorDataset:
     feature_names: list[str]
 
     @property
+    def train_targets(self):
+        return self.y_train
+
+    @property
+    def validation_targets(self):
+        return self.y_val
+
+    @property
     def test_targets(self):
         return self.y_test
 
     @property
+    def train_compound_ids(self):
+        return self.compound_ids_train
+
+    @property
+    def validation_compound_ids(self):
+        return self.compound_ids_val
+
+    @property
     def test_compound_ids(self):
         return self.compound_ids_test
+
+    def get_training_data(self, include_validation=False):
+        if include_validation:
+            return (
+                np.concatenate([self.X_train, self.X_val]),
+                np.concatenate([self.y_train, self.y_val]),
+            )
+
+        return self.X_train, self.y_train
+
+    def get_validation_data(self):
+        return self.X_val, self.y_val
+
+    def get_test_data(self):
+        return self.X_test, self.y_test
 
 
 @dataclass
@@ -59,12 +90,40 @@ class GraphDataset:
     num_targets: int
 
     @property
-    def test_targets(self):
-        return np.array([g.y.item() for g in self.test_graphs])
+    def train_compound_ids(self):
+        return self.compound_ids_train
+
+    @property
+    def validation_compound_ids(self):
+        return self.compound_ids_val
 
     @property
     def test_compound_ids(self):
         return self.compound_ids_test
+
+    @property
+    def train_targets(self):
+        return np.array([g.y.item() for g in self.train_graphs])
+
+    @property
+    def validation_targets(self):
+        return np.array([g.y.item() for g in self.val_graphs])
+
+    @property
+    def test_targets(self):
+        return np.array([g.y.item() for g in self.test_graphs])
+
+    def get_training_graphs(self, include_validation=False):
+        if include_validation:
+            return self.train_graphs + self.val_graphs
+
+        return self.train_graphs
+
+    def get_validation_graphs(self):
+        return self.val_graphs
+
+    def get_test_graphs(self):
+        return self.test_graphs
 
 
 class Featurizer:

@@ -20,8 +20,9 @@ num_timesteps = 2
 out_channels = 64
 n_outputs = 1
 
-# Training
+[training]
+include_validation = true
 learning_rate = 0.001
 n_epochs = 300
-
 batch_size = 64
+
