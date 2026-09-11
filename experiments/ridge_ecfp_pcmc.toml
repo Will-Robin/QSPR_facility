@@ -10,7 +10,7 @@ radius = 2
 n_bits = 2048
 
 [parameters]
-alpha = 1.0
+alpha = 0.5
 
 [training]
 include_validation = true

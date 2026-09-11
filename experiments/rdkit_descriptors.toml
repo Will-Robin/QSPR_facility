@@ -6,7 +6,7 @@ featurizer = "descriptor"
 model = "ridge"
 
 [parameters]
-alpha = 1.0
+alpha = 0.5
 
 [training]
 include_validation = true
