@@ -27,8 +27,10 @@ def main():
 
         for i, row in df.iterrows():
             loss_path = Path("outputs") / row.experiment_hash / "loss.csv"
-            df_loss = pd.read_csv(loss_path)
-            ax.plot(df_loss.epoch, df_loss.loss, label=row.experiment_hash[:5])
+
+            if loss_path.is_file():
+                df_loss = pd.read_csv(loss_path)
+                ax.plot(df_loss.epoch, df_loss.loss, label=row.experiment_hash[:5])
         plt.legend()
         plt.show()
 
