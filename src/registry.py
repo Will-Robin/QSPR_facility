@@ -10,7 +10,7 @@ from src.ml_models import (
 from src.graph_neural_networks.AttentiveFP import AttentiveFPRegressorModel
 from src.graph_neural_networks.GCN import GCNRegressorModel
 from src.graph_neural_networks.GIN import GINRegressorModel
-from src.graph_neural_networks.GINE import GINEdgeRegressorModel
+from src.graph_neural_networks.GINEdge import GINEdgeRegressorModel
 from src.graph_neural_networks.GAT import GATRegressorModel
 from src.graph_neural_networks.GATEdge import GATEdgeRegressorModel
 
@@ -26,7 +26,7 @@ MODEL_REGISTRY = {
     "attentivefp": AttentiveFPRegressorModel,
     "gcn": GCNRegressorModel,
     "gin": GINRegressorModel,
-    "gine": GINEdgeRegressorModel,
+    "gin_edge": GINEdgeRegressorModel,
     "gat": GATRegressorModel,
     "gat_edge": GATEdgeRegressorModel,
 }
