@@ -1,0 +1,20 @@
+experiment_name = "gine_head_7"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "gine_head"
+
+[parameters]
+num_layers = 3
+hidden_channels = 128
+embedding_dim = 256
+head_hidden_dim = 128
+dropout = 0.1
+n_outputs = 1
+
+[training]
+include_validation = true
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 24

@@ -1,0 +1,22 @@
+experiment_name = "gcn_head_4"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "gcn_head"
+
+[parameters]
+hidden_channels = 96
+embedding_dim = 128
+head_hidden_dim = 96
+dropout = 0.1
+num_layers = 3
+n_outputs = 1
+
+
+[training]
+include_validation = true
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 24
+

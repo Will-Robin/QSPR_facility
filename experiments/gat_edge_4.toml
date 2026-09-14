@@ -1,0 +1,18 @@
+experiment_name = "gat_edge_4"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "gat_edge"
+
+[parameters]
+hidden_channels = 64
+num_layers = 4
+heads = 2
+
+[training]
+include_validation = true
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 24
+

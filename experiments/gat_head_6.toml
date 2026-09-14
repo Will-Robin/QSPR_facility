@@ -1,0 +1,21 @@
+experiment_name = "gat_head_6"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+
+featurizer = "graph"
+model = "gat_head"
+
+[parameters]
+num_layers = 3
+hidden_channels = 64
+embedding_dim = 128
+head_hidden_dim = 64
+dropout = 0.1
+heads = 3
+n_outputs = 1
+
+[training]
+include_validation = true
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 24

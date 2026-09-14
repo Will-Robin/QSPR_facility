@@ -41,6 +41,11 @@ class Model:
             "r2": r2_score(y_true, y_pred),
         }
 
+    def get_complexity_metrics(self, representation):
+        return {
+            "n_features": representation.X_train.shape[1],
+        }
+
 
 class GraphModel(Model):
     input_type = GraphDataset
@@ -152,3 +157,11 @@ class GraphModel(Model):
                 predictions.append(pred.squeeze().cpu())
 
         return torch.cat(predictions).numpy()
+
+    def get_complexity_metrics(self, representation):
+        return {
+            "n_parameters": sum(p.numel() for p in self.network.parameters()),
+            "n_trainable_parameters": sum(
+                p.numel() for p in self.network.parameters() if p.requires_grad
+            ),
+        }

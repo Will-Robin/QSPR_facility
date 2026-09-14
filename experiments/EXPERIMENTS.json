@@ -72,6 +72,33 @@
                 "hidden_channels": [64, 96, 128]
             }
         },
+        "gcn_head": {
+            "featurizer": "graph",
+            "parameter_grid": {
+                "hidden_channels": [64],
+                "embedding_dim": [128],
+                "head_hidden_dim": [64],
+                "dropout": [0.1],
+                "n_outputs": [1]
+            }
+        },
+        "gin": {
+            "featurizer": "graph",
+            "parameter_grid": {
+                "hidden_channels": [64, 96, 128],
+                "num_layers": [1, 2, 4]
+            }
+        },
+        "gin_head": {
+            "parameter_grid": {
+                "num_layers": [1],
+                "hidden_channels": [64],
+                "embedding_dim": [128],
+                "head_hidden_dim": [64],
+                "dropout": [0.1],
+                "n_outputs": [1]
+            }
+        }
         "attentivefp": {
             "featurizer": "graph",
             "parameter_grid": {

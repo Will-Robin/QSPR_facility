@@ -1,31 +1,38 @@
 import torch
 from torch.nn import Linear
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, global_mean_pool
+from torch_geometric.nn import GATConv, global_mean_pool
 from src.model_base import GraphModel
 from torch import nn
 
 
-class GCNNet(torch.nn.Module):
+class GATNet(torch.nn.Module):
     def __init__(
         self,
         num_node_features,
         hidden_channels=64,
-        num_layers=1,
+        num_layers=2,
+        heads=4,
     ):
         super().__init__()
 
         self.convs = nn.ModuleList()
+
         in_dim = num_node_features
 
         for _ in range(num_layers):
-            self.convs.append(GCNConv(in_dim, hidden_channels))
+            self.convs.append(GATConv(in_dim, hidden_channels, heads=heads))
 
-            in_dim = hidden_channels
+            in_dim = hidden_channels * heads
 
         self.lin = Linear(in_dim, 1)
 
-    def forward(self, x, edge_index, batch):
+    def forward(
+        self,
+        x,
+        edge_index,
+        batch,
+    ):
         for conv in self.convs:
             x = conv(x, edge_index)
 
@@ -36,31 +43,30 @@ class GCNNet(torch.nn.Module):
         return self.lin(x)
 
 
-class GCNModel(GraphModel):
+class GATModel(GraphModel):
     def __init__(
         self,
         hidden_channels=64,
-        num_layers=1,
+        num_layers=2,
+        heads=4,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.hidden_channels = hidden_channels
         self.num_layers = num_layers
+        self.heads = heads
 
     def build_network(self, dataset):
-        return GCNNet(
+        return GATNet(
             num_node_features=dataset.num_node_features,
             hidden_channels=self.hidden_channels,
             num_layers=self.num_layers,
+            heads=self.heads,
         )
 
     def forward(self, batch):
-        return self.network(
-            batch.x,
-            batch.edge_index,
-            batch.batch,
-        )
+        return self.network(batch.x, batch.edge_index, batch.batch)
 
 
 class RegressionHead(torch.nn.Module):
@@ -95,7 +101,7 @@ class RegressionHead(torch.nn.Module):
         return self.fc3(x)
 
 
-class GCNHeadNet(torch.nn.Module):
+class GATHeadNet(torch.nn.Module):
     def __init__(
         self,
         num_node_features,
@@ -104,6 +110,7 @@ class GCNHeadNet(torch.nn.Module):
         embedding_dim=128,
         head_hidden_dim=64,
         dropout=0.1,
+        heads=2,
         n_outputs=1,
     ):
         super().__init__()
@@ -113,11 +120,28 @@ class GCNHeadNet(torch.nn.Module):
         in_dim = num_node_features
 
         for layer in range(num_layers):
-            out_dim = embedding_dim if layer == num_layers - 1 else hidden_channels
+            if layer == num_layers - 1:
+                self.convs.append(
+                    GATConv(
+                        in_dim,
+                        embedding_dim,
+                        heads=heads,
+                        concat=False,
+                    )
+                )
 
-            self.convs.append(GCNConv(in_dim, out_dim))
+                in_dim = embedding_dim
 
-            in_dim = out_dim
+            else:
+                self.convs.append(
+                    GATConv(
+                        in_dim,
+                        hidden_channels,
+                        heads=heads,
+                    )
+                )
+
+                in_dim = hidden_channels * heads
 
         self.dropout = nn.Dropout(dropout)
 
@@ -144,34 +168,37 @@ class GCNHeadNet(torch.nn.Module):
         return self.head(embedding)
 
 
-class GCNHeadModel(GraphModel):
+class GATHeadModel(GraphModel):
     def __init__(
         self,
-        hidden_channels=64,
         num_layers=1,
+        hidden_channels=64,
         embedding_dim=128,
         head_hidden_dim=64,
         dropout=0.1,
+        heads=2,
         n_outputs=1,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        self.hidden_channels = hidden_channels
         self.num_layers = num_layers
+        self.hidden_channels = hidden_channels
         self.embedding_dim = embedding_dim
         self.head_hidden_dim = head_hidden_dim
         self.dropout = dropout
         self.n_outputs = n_outputs
+        self.heads = heads
 
     def build_network(self, dataset):
-        return GCNHeadNet(
+        return GATHeadNet(
             num_node_features=dataset.num_node_features,
-            hidden_channels=self.hidden_channels,
             num_layers=self.num_layers,
+            hidden_channels=self.hidden_channels,
             embedding_dim=self.embedding_dim,
             head_hidden_dim=self.head_hidden_dim,
             dropout=self.dropout,
+            heads=self.heads,
             n_outputs=self.n_outputs,
         )
 
