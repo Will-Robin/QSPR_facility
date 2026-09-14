@@ -72,7 +72,7 @@
                 "hidden_channels": [64, 96, 128]
             }
         },
-        "gcn_head": {
+        "gcn": {
             "featurizer": "graph",
             "parameter_grid": {
                 "hidden_channels": [64],
@@ -89,7 +89,7 @@
                 "num_layers": [1, 2, 4]
             }
         },
-        "gin_head": {
+        "gin": {
             "parameter_grid": {
                 "num_layers": [1],
                 "hidden_channels": [64],
@@ -109,7 +109,7 @@
                 "dropout": [0.1]
             }
         },
-        "attentivefp_head": {
+        "attentivefp": {
             "featurizer": "graph",
             "parameter_grid": {
                     "hidden_channels": [64, 96, 128],
