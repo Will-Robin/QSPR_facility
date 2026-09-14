@@ -7,13 +7,12 @@ from src.ml_models import (
     MLPModel,
 )
 
-from src.graph_neural_networks.AttentiveFP import AttentiveFPModel, AttentiveFPHeadModel
-
-from src.graph_neural_networks.GCN import GCNModel, GCNHeadModel
-from src.graph_neural_networks.GIN import GINModel, GINHeadModel
-from src.graph_neural_networks.GINE import GINEModel, GINEHeadModel
-from src.graph_neural_networks.GAT import GATModel, GATHeadModel
-from src.graph_neural_networks.GATEdge import GATEdgeModel, GATEdgeHeadModel
+from src.graph_neural_networks.AttentiveFP import AttentiveFPRegressorModel
+from src.graph_neural_networks.GCN import GCNRegressorModel
+from src.graph_neural_networks.GIN import GINRegressorModel
+from src.graph_neural_networks.GINE import GINEdgeRegressorModel
+from src.graph_neural_networks.GAT import GATRegressorModel
+from src.graph_neural_networks.GATEdge import GATEdgeRegressorModel
 
 from src.dataloader import ECFPFeaturizer, DescriptorFeaturizer, GraphFeaturizer
 
@@ -24,18 +23,12 @@ MODEL_REGISTRY = {
     "random_forest": RandomForestModel,
     "svr": SVRModel,
     "mlp": MLPModel,
-    "attentivefp": AttentiveFPModel,
-    "attentivefp_head": AttentiveFPHeadModel,
-    "gcn": GCNModel,
-    "gcn_head": GCNHeadModel,
-    "gin": GINModel,
-    "gin_head": GINHeadModel,
-    "gine": GINEModel,
-    "gine_head": GINEHeadModel,
-    "gat": GATModel,
-    "gat_head": GATHeadModel,
-    "gat_edge": GATEdgeModel,
-    "gat_edge_head": GATEdgeHeadModel,
+    "attentivefp": AttentiveFPRegressorModel,
+    "gcn": GCNRegressorModel,
+    "gin": GINRegressorModel,
+    "gine": GINEdgeRegressorModel,
+    "gat": GATRegressorModel,
+    "gat_edge": GATEdgeRegressorModel,
 }
 
 

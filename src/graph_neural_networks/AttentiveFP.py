@@ -1,92 +1,17 @@
 import torch
-from torch import nn
-import torch.nn.functional as F
 from torch_geometric.nn.models import AttentiveFP
 
+from src.head import RegressionHead
+from src.graph_neural_networks.graph_regressor import GraphRegressorNet
 from src.model_base import GraphModel
 
 
-class AttentiveFPModel(GraphModel):
-    def __init__(
-        self,
-        hidden_channels=64,
-        out_channels=1,
-        num_layers=2,
-        num_timesteps=2,
-        dropout=0.1,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-
-        self.hidden_channels = hidden_channels
-        self.out_channels = out_channels
-        self.num_layers = num_layers
-        self.num_timesteps = num_timesteps
-        self.dropout = dropout
-
-    def build_network(
-        self,
-        dataset,
-    ):
-        return AttentiveFP(
-            in_channels=dataset.num_node_features,
-            hidden_channels=self.hidden_channels,
-            out_channels=self.out_channels,
-            edge_dim=dataset.num_edge_features,
-            num_layers=self.num_layers,
-            num_timesteps=self.num_timesteps,
-            dropout=self.dropout,
-        )
-
-    def forward(self, batch):
-        return self.network(
-            batch.x,
-            batch.edge_index,
-            batch.edge_attr,
-            batch.batch,
-        )
-
-
-class RegressionHead(torch.nn.Module):
-    def __init__(
-        self,
-        n_outputs,
-        hidden_dim,
-        dropout,
-        dim,
-    ):
-        super().__init__()
-
-        self.dropout = nn.Dropout(dropout)
-
-        self.norm = nn.LayerNorm(dim)
-
-        self.fc1 = nn.Linear(dim, hidden_dim)
-
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-
-        self.fc3 = nn.Linear(hidden_dim, n_outputs)
-
-    def forward(self, x):
-        x = self.norm(x)
-
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-
-        x = F.relu(self.fc2(x))
-        x = self.dropout(x)
-
-        return self.fc3(x)
-
-
-class AttentiveFPHeadNet(torch.nn.Module):
+class AttentiveFPEncoderNet(torch.nn.Module):
     def __init__(
         self,
         num_node_features,
         num_edge_features,
-        n_outputs=1,
         hidden_channels=64,
-        head_hidden_dim=64,
         out_channels=128,
         num_layers=2,
         num_timesteps=2,
@@ -104,31 +29,13 @@ class AttentiveFPHeadNet(torch.nn.Module):
             dropout=dropout,
         )
 
-        self.head = RegressionHead(
-            n_outputs=n_outputs,
-            hidden_dim=head_hidden_dim,
-            dim=out_channels,
-            dropout=dropout,
-        )
-
     def forward(self, x, edge_index, edge_attr, batch):
         embeddings = self.encoder(x, edge_index, edge_attr, batch)
 
-        return self.head(embeddings)
-
-    def encode(self, x, edge_index, edge_attr, batch):
-        """
-        embeddings = model.network.encode(...)
-        """
-        return self.encoder(
-            x,
-            edge_index,
-            edge_attr,
-            batch,
-        )
+        return embeddings
 
 
-class AttentiveFPHeadModel(GraphModel):
+class AttentiveFPRegressorModel(GraphModel):
     def __init__(
         self,
         hidden_channels=64,
@@ -136,8 +43,9 @@ class AttentiveFPHeadModel(GraphModel):
         out_channels=128,
         num_layers=2,
         num_timesteps=2,
+        head_layers=0,
         dropout=0.1,
-        n_outputs=1,
+        num_outputs=1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -148,20 +56,30 @@ class AttentiveFPHeadModel(GraphModel):
         self.num_layers = num_layers
         self.num_timesteps = num_timesteps
         self.dropout = dropout
-        self.n_outputs = n_outputs
+        self.num_outputs = num_outputs
+        self.out_channels = out_channels
+        self.head_layers = head_layers
 
     def build_network(self, dataset):
-        return AttentiveFPHeadNet(
+        encoder = AttentiveFPEncoderNet(
             num_node_features=dataset.num_node_features,
             num_edge_features=dataset.num_edge_features,
-            n_outputs=self.n_outputs,
             hidden_channels=self.hidden_channels,
-            head_hidden_dim=self.head_hidden_dim,
             out_channels=self.out_channels,
             num_layers=self.num_layers,
             num_timesteps=self.num_timesteps,
             dropout=self.dropout,
         )
+
+        head = RegressionHead(
+            dim=self.out_channels,
+            num_outputs=self.num_outputs,
+            hidden_dim=self.head_hidden_dim,
+            n_layers=self.head_layers,
+            dropout=self.dropout,
+        )
+
+        return GraphRegressorNet(encoder, head)
 
     def forward(self, batch):
         return self.network(batch.x, batch.edge_index, batch.edge_attr, batch.batch)
