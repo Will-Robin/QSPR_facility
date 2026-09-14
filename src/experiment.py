@@ -75,16 +75,10 @@ class Experiment:
             split_name=row["split_name"],
             target=row["target"],
             featurizer=row["featurizer"],
-            featurizer_parameters=json.loads(
-                row["featurizer_parameters_json"]
-            ),
+            featurizer_parameters=json.loads(row["featurizer_parameters_json"]),
             model=row["model"],
-            parameters=json.loads(
-                row["parameters_json"]
-            ),
-            training=json.loads(
-                row["training_json"]
-            ),
+            parameters=json.loads(row["parameters_json"]),
+            training=json.loads(row["training_json"]),
             raw_toml=row["raw_toml"],
         )
 
@@ -274,6 +268,7 @@ class ExperimentRunner:
         model.fit(representation, include_validation=include_validation)
 
         metrics = model.evaluate(representation)
+        metrics.update(model.get_complexity_metrics(representation))
 
         predictions = model.predict(representation)
 
