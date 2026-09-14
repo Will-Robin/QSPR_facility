@@ -2,6 +2,7 @@ import toml
 import sqlite3
 import pandas as pd
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 leader_board_query = """
 SELECT
@@ -13,8 +14,8 @@ SELECT
 	em.value
 FROM experiments e
 JOIN experiment_metrics em USING(experiment_id)
-WHERE em.metric = 'r2'
-ORDER BY em.value DESC;
+WHERE em.metric = 'rmse'
+ORDER BY em.value ASC;
 """
 
 def main():
@@ -27,7 +28,11 @@ def main():
             leader_board_query,
             conn,
         )
+
     print(df.head())
+    fig, ax = plt.subplots()
+    ax.hist(df.value)
+    plt.show()
 
 if __name__ == "__main__":
     main()

@@ -34,6 +34,8 @@ def main():
     design_files = [
         file for file in Path("experiments").iterdir() if file.suffix == ".toml"
     ]
+
+    design_files.sort()
     for des_file in design_files:
         run_design(des_file, ml_database)
 
