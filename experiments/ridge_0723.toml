@@ -1,0 +1,12 @@
+experiment_name = "ridge_0723"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "ridge"
+
+[featurizer_parameters]
+
+[parameters]
+alpha = 1.0
+
+[training]

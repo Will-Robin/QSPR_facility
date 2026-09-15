@@ -1,0 +1,12 @@
+experiment_name = "svr_0730"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "svr"
+
+[featurizer_parameters]
+
+[parameters]
+kernel = "rbf"
+
+[training]

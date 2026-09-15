@@ -1,0 +1,22 @@
+experiment_name = "gin_0153"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "graph"
+model = "gin"
+
+[featurizer_parameters]
+
+[parameters]
+num_layers = 2
+hidden_channels = 128
+embedding_dim = 128
+head_hidden_dim = 64
+head_layers = 0
+dropout = 0.1
+num_outputs = 1
+
+[training]
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 64
+include_validation = true

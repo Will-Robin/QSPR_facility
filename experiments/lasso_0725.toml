@@ -1,0 +1,12 @@
+experiment_name = "lasso_0725"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "lasso"
+
+[featurizer_parameters]
+
+[parameters]
+alpha = 0.1
+
+[training]

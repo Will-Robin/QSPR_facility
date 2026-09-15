@@ -1,0 +1,15 @@
+experiment_name = "random_forest_0749"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "ecfp"
+model = "random_forest"
+
+[featurizer_parameters]
+radius = 1
+n_bits = 2048
+count_based = false
+
+[parameters]
+n_estimators = 1000
+
+[training]
