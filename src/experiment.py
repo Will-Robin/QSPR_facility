@@ -9,12 +9,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from src.registry import MODEL_REGISTRY, FEATURIZER_REGISTRY
 from src.dataloader import SQLiteDataLoader
-
-MODEL_TRAINING_KEYS = {
-    "learning_rate",
-    "batch_size",
-    "n_epochs",
-}
+from src.split_generator import SplitGenerator
 
 
 @dataclass
@@ -32,6 +27,9 @@ class Experiment:
     parameters: dict
 
     training: dict
+
+    cv_strategy: str | None = None
+    cv_repeats: int = 1
 
     raw_toml: str | None = None
 
@@ -53,6 +51,9 @@ class Experiment:
             {},
         )
 
+        cv_strategy = config.get("cv_strategy", None)
+        cv_repeats = config.get("cv_repeats", 1)
+
         training = config.get("training", {})
 
         return cls(
@@ -64,6 +65,8 @@ class Experiment:
             model=config["model"],
             parameters=parameters,
             training=training,
+            cv_strategy=cv_strategy,
+            cv_repeats=cv_repeats,
             raw_toml=raw_toml,
             source_file=str(path),
         )
@@ -79,6 +82,8 @@ class Experiment:
             model=row["model"],
             parameters=json.loads(row["parameters_json"]),
             training=json.loads(row["training_json"]),
+            cv_strategy=row["cv_strategy"],
+            cv_repeats=row["cv_repeats"],
             raw_toml=row["raw_toml"],
         )
 
@@ -91,6 +96,8 @@ class Experiment:
             "featurizer_parameters": self.featurizer_parameters,
             "model": self.model,
             "parameters": self.parameters,
+            "cv_strategy": self.cv_strategy,
+            "cv_repeats": self.cv_repeats,
             "training": self.training,
         }
 
@@ -111,13 +118,18 @@ class Experiment:
             "model": self.model,
             "parameters": self.parameters,
             "experiment_hash": self.experiment_hash,
+            "cv_strategy": self.cv_strategy,
+            "cv_repeats": self.cv_repeats,
             "training": self.training,
         }
 
 
 @dataclass
-class ExperimentResult:
-    experiment: Experiment
+class ExperimentRunResult:
+    run_number: int
+    random_seed: int
+
+    split_name: str
 
     metrics: dict
 
@@ -126,6 +138,12 @@ class ExperimentResult:
     predicted: np.ndarray
 
     training_loss: list[float] | None = None
+
+
+@dataclass
+class ExperimentResult:
+    experiment: Experiment
+    runs: list[ExperimentRunResult]
 
     def save_to_database(self, ml_database):
         with sqlite3.connect(ml_database) as conn:
@@ -145,10 +163,12 @@ class ExperimentResult:
                     model,
                     parameters_json,
                     training_json,
+                    cv_strategy,
+                    cv_repeats,
                     raw_toml,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self.experiment.experiment_name,
@@ -161,6 +181,8 @@ class ExperimentResult:
                     self.experiment.model,
                     json.dumps(self.experiment.parameters),
                     json.dumps(self.experiment.training),
+                    self.experiment.cv_strategy,
+                    self.experiment.cv_repeats,
                     self.experiment.raw_toml,
                     datetime.now().isoformat(),
                 ),
@@ -168,73 +190,150 @@ class ExperimentResult:
 
             experiment_id = cursor.lastrowid
 
-            for metric, value in self.metrics.items():
+            for run in self.runs:
                 cursor.execute(
                     """
-                    INSERT INTO
-                    experiment_metrics (
-                        experiment_id,
-                        metric,
-                        value
-                    )
-                    VALUES (?, ?, ?)
-                    """,
+                INSERT INTO experiment_runs (
+                    experiment_id,
+                    run_number,
+                    split_name,
+                    random_seed,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
                     (
                         experiment_id,
-                        metric,
-                        value,
+                        run.run_number,
+                        run.split_name,
+                        run.random_seed,
+                        datetime.now().isoformat(),
                     ),
                 )
-            for compound_id, obs, pred in zip(
-                self.compound_ids,
-                self.observed,
-                self.predicted,
-            ):
-                cursor.execute(
-                    """
-                    INSERT INTO
-                    experiment_predictions (
-                        experiment_id,
-                        compound_id,
-                        observed,
-                        predicted
+
+                run_id = cursor.lastrowid
+
+                for metric, value in run.metrics.items():
+                    cursor.execute(
+                        """
+                        INSERT INTO experiment_metrics (
+                            run_id,
+                            metric,
+                            value
+                        )
+                        VALUES (?, ?, ?)
+                        """,
+                        (
+                            run_id,
+                            metric,
+                            float(value),
+                        ),
                     )
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (
-                        experiment_id,
-                        int(compound_id),
-                        float(obs),
-                        float(pred),
-                    ),
-                )
+
+                for compound_id, obs, pred in zip(
+                    run.compound_ids,
+                    run.observed,
+                    run.predicted,
+                ):
+                    cursor.execute(
+                        """
+                        INSERT INTO
+                        experiment_predictions (
+                            run_id,
+                            compound_id,
+                            observed,
+                            predicted
+                        )
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            run_id,
+                            int(compound_id),
+                            float(obs),
+                            float(pred),
+                        ),
+                    )
+
+            for metric, statistics in self.summary_metrics.items():
+                for statistic, value in statistics.items():
+                    cursor.execute(
+                        """
+                        INSERT INTO experiment_summary_metrics (
+                            experiment_id,
+                            metric,
+                            statistic,
+                            value
+                        )
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            experiment_id,
+                            metric,
+                            statistic,
+                            float(value),
+                        ),
+                    )
 
             conn.commit()
 
     def save_artifacts(self, output_dir):
-        if self.training_loss is None:
-            return
-
         output_dir = Path(output_dir)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        pd.DataFrame(
-            {
-                "epoch": range(len(self.training_loss)),
-                "loss": self.training_loss,
+        for run in self.runs:
+            if run.training_loss is None:
+                continue
+            pd.DataFrame(
+                {
+                    "epoch": range(len(run.training_loss)),
+                    "loss": run.training_loss,
+                }
+            ).to_csv(output_dir / f"loss_run_{run.run_number}.csv", index=False)
+
+    @property
+    def summary_metrics(self):
+        summary_metrics = {}
+
+        if not self.runs:
+            return {}
+
+        metric_names = self.runs[0].metrics.keys()
+
+        for metric in metric_names:
+            values = [run.metrics[metric] for run in self.runs]
+
+            summary_metrics[metric] = {
+                "mean": float(np.mean(values)),
+                "std": float(np.std(values, ddof=1)),
+                "min": float(np.min(values)),
+                "max": float(np.max(values)),
             }
-        ).to_csv(
-            output_dir / "loss.csv",
-            index=False,
-        )
+
+        return summary_metrics
 
 
 class ExperimentRunner:
     def __init__(self, ml_database):
         self.ml_database = ml_database
 
-    def run(self, experiment: Experiment) -> ExperimentResult:
+    def run(self, experiment: Experiment):
+        run_results = []
+
+        for run_number in range(experiment.cv_repeats):
+            run_result = self.run_single(
+                experiment, run_number=run_number, seed=run_number
+            )
+            run_results.append(run_result)
+
+        return ExperimentResult(
+            experiment=experiment,
+            runs=run_results,
+        )
+
+    def run_single(
+        self, experiment: Experiment, run_number: int, seed: int = 42
+    ) -> ExperimentRunResult:
         loader = SQLiteDataLoader()
 
         dataset = loader.load(
@@ -243,23 +342,29 @@ class ExperimentRunner:
             target=experiment.target,
         )
 
+        split_generator = SplitGenerator()
+
+        if experiment.cv_strategy is None:
+            cv_dataset = dataset
+        elif experiment.cv_strategy == "repeated_holdout":
+            cv_dataset = split_generator.generate(
+                dataset,
+                seed=seed,
+            )
+        else:
+            raise ValueError(f"Unknown cv_strategy: {experiment.cv_strategy}")
+
         featurizer = FEATURIZER_REGISTRY[experiment.featurizer](
             **experiment.featurizer_parameters
         )
 
-        representation = featurizer.transform(dataset, target=experiment.target)
+        representation = featurizer.transform(cv_dataset, target=experiment.target)
 
         training_options = experiment.training
 
         include_validation = training_options.get("include_validation", False)
 
-        model_kwargs = {}
-
-        model_kwargs.update(experiment.parameters)
-
-        for key in MODEL_TRAINING_KEYS:
-            if key in experiment.training:
-                model_kwargs[key] = experiment.training[key]
+        model_kwargs = dict(experiment.parameters)
 
         model_kwargs.pop("include_validation", False)
 
@@ -272,8 +377,10 @@ class ExperimentRunner:
 
         predictions = model.predict(representation)
 
-        return ExperimentResult(
-            experiment=experiment,
+        return ExperimentRunResult(
+            run_number=run_number,
+            random_seed=seed,
+            split_name=experiment.split_name,
             metrics=metrics,
             compound_ids=representation.compound_ids_test,
             observed=representation.test_targets,
