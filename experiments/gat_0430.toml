@@ -13,7 +13,7 @@ embedding_dim = 64
 head_hidden_dim = 96
 head_layers = 2
 dropout = 0.1
-heads = 3
+attention_heads = 3
 num_outputs = 1
 
 [training]

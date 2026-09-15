@@ -14,7 +14,7 @@ class GATEncoderNet(torch.nn.Module):
         hidden_channels=64,
         embedding_dim=128,
         num_layers=2,
-        heads=4,
+        attention_heads=4,
         dropout=0.1,
     ):
         super().__init__()
@@ -28,15 +28,17 @@ class GATEncoderNet(torch.nn.Module):
         for layer in range(num_layers):
             if layer == num_layers - 1:
                 self.convs.append(
-                    GATConv(in_dim, embedding_dim, heads=heads, concat=False)
+                    GATConv(in_dim, embedding_dim, heads=attention_heads, concat=False)
                 )
 
                 in_dim = embedding_dim
 
             else:
-                self.convs.append(GATConv(in_dim, hidden_channels, heads=heads))
+                self.convs.append(
+                    GATConv(in_dim, hidden_channels, heads=attention_heads)
+                )
 
-                in_dim = hidden_channels * heads
+                in_dim = hidden_channels * attention_heads
 
     def forward(self, x, edge_index, batch):
         for i, conv in enumerate(self.convs):
@@ -60,7 +62,7 @@ class GATRegressorModel(GraphModel):
         head_hidden_dim=64,
         head_layers=0,
         dropout=0.1,
-        heads=2,
+        attention_heads=2,
         num_outputs=1,
         **kwargs,
     ):
@@ -73,7 +75,7 @@ class GATRegressorModel(GraphModel):
         self.head_layers = head_layers
         self.dropout = dropout
         self.num_outputs = num_outputs
-        self.heads = heads
+        self.attention_heads = attention_heads
 
     def build_network(self, dataset):
         encoder = GATEncoderNet(
@@ -81,7 +83,7 @@ class GATRegressorModel(GraphModel):
             hidden_channels=self.hidden_channels,
             embedding_dim=self.embedding_dim,
             num_layers=self.num_layers,
-            heads=self.heads,
+            attention_heads=self.attention_heads,
             dropout=self.dropout,
         )
 
