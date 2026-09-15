@@ -67,9 +67,17 @@ def main():
     config = toml.loads(Path("config.toml").read_text())
     ml_database = config["ML_DATABASE"]
 
-    #experiment = Experiment.from_toml("experiments/attfp_graph_pcmc.toml")
-    #delete_experiment(ml_database, experiment.experiment_hash)
-    clear_experiments(ml_database)
+    for file in Path("experiments").iterdir():
+        if any(
+            [
+                x in file.name
+                for x in ["lasso", "linear", "ridge", "random_forest", "svr"]
+            ]
+        ):
+            experiment = Experiment.from_toml(file)
+            print(file.name)
+            delete_experiment(ml_database, experiment.experiment_hash)
+    # clear_experiments(ml_database)
 
 
 if __name__ == "__main__":

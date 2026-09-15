@@ -37,6 +37,7 @@ def main():
 
     design_files.sort()
     for des_file in design_files:
+        print(des_file)
         run_design(des_file, ml_database)
 
 
