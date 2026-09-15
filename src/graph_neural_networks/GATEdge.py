@@ -15,7 +15,7 @@ class GATEdgeEncoderNet(torch.nn.Module):
         hidden_channels=64,
         embedding_dim=128,
         num_layers=2,
-        heads=4,
+        attention_heads=4,
         dropout=0.1,
     ):
         super().__init__()
@@ -30,7 +30,7 @@ class GATEdgeEncoderNet(torch.nn.Module):
                     GATConv(
                         in_dim,
                         embedding_dim,
-                        heads=heads,
+                        heads=attention_heads,
                         edge_dim=num_edge_features,
                         concat=False,
                     )
@@ -41,11 +41,11 @@ class GATEdgeEncoderNet(torch.nn.Module):
             else:
                 self.convs.append(
                     GATConv(
-                        in_dim, hidden_channels, heads=heads, edge_dim=num_edge_features
+                        in_dim, hidden_channels, heads=attention_heads, edge_dim=num_edge_features
                     )
                 )
 
-                in_dim = hidden_channels * heads
+                in_dim = hidden_channels * attention_heads
 
         self.embedding_dim = embedding_dim
 
@@ -69,7 +69,7 @@ class GATEdgeRegressorModel(GraphModel):
         head_hidden_dim=64,
         head_layers=0,
         dropout=0.1,
-        heads=2,
+        attention_heads=2,
         num_outputs=1,
         **kwargs,
     ):
@@ -82,7 +82,7 @@ class GATEdgeRegressorModel(GraphModel):
         self.head_layers = head_layers
         self.dropout = dropout
         self.num_outputs = num_outputs
-        self.heads = heads
+        self.attention_heads = attention_heads
 
     def build_network(self, dataset):
         encoder = GATEdgeEncoderNet(
@@ -92,7 +92,7 @@ class GATEdgeRegressorModel(GraphModel):
             hidden_channels=self.hidden_channels,
             embedding_dim=self.embedding_dim,
             dropout=self.dropout,
-            heads=self.heads,
+            attention_heads=self.attention_heads,
         )
 
         head = RegressionHead(
