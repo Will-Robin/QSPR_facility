@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from torch_geometric.data import Data
 from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+from sklearn.preprocessing import StandardScaler
 
 
 @dataclass
@@ -164,6 +165,13 @@ class DescriptorFeaturizer(Featurizer):
         X_val = np.array([self.featurize_smiles(s) for s in val_df["SMILES"]])
 
         X_test = np.array([self.featurize_smiles(s) for s in test_df["SMILES"]])
+
+        # Scale the data based on training and validation data.
+        scaler = StandardScaler()
+        scaler.fit(X_train)
+        X_train = scaler.transform(X_train)
+        X_val = scaler.transform(X_val)
+        X_test = scaler.transform(X_test)
 
         return VectorDataset(
             compound_ids_train=train_df["compound_id"].values,
