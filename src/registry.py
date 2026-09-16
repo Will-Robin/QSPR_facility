@@ -17,6 +17,7 @@ from src.graph_neural_networks.GATEdge import GATEdgeRegressorModel
 from src.split_strategies import RandomSplitStrategy
 from src.split_strategies import StratifiedSplitStrategy
 from src.split_strategies import MurckoScaffoldSplitStrategy
+from src.split_strategies import ElementHoldoutSplitStrategy
 
 from src.dataloader import ECFPFeaturizer, DescriptorFeaturizer, GraphFeaturizer
 
@@ -43,7 +44,8 @@ FEATURIZER_REGISTRY = {
 }
 
 SPLIT_STRATEGIES = {
-        "random": RandomSplitStrategy,
-        "stratified": StratifiedSplitStrategy,
-        "murcko_scaffold": MurckoScaffoldSplitStrategy,
+    "random": RandomSplitStrategy,
+    "stratified": StratifiedSplitStrategy,
+    "murcko_scaffold": MurckoScaffoldSplitStrategy,
+    "element_holdout": ElementHoldoutSplitStrategy,
 }

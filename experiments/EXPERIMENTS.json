@@ -15,7 +15,7 @@
         },
         "random_forest": {
             "parameter_grid": {
-                "n_estimators": [500, 1000]
+                "n_estimators": [50, 100, 200, 500, 1000]
             }
         },
         "svr": {
@@ -26,57 +26,58 @@
         "gcn": {
             "parameter_grid": {
                 "hidden_channels": [64, 128],
-                "num_layers": [1, 2, 3],
-                "embedding_dim": [64, 128],
+                "num_layers": [1, 2, 3, 4],
+                "embedding_dim": [64, 128, 256],
                 "head_hidden_dim": [64, 96],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "dropout": [0.1],
                 "num_outputs": [1]
             }
         },
         "gin": {
             "parameter_grid": {
-                "num_layers": [1, 2, 3],
+                "num_layers": [1, 2, 3, 4],
                 "hidden_channels": [64, 128],
-                "embedding_dim": [64, 128],
+                "embedding_dim": [64, 128, 256],
                 "head_hidden_dim": [64, 96],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "dropout": [0.1],
                 "num_outputs": [1]
             }
         },
         "gin_edge": {
             "parameter_grid": {
-                "num_layers": [1, 2, 3],
+                "num_layers": [1, 2, 3, 4],
                 "hidden_channels": [64, 128],
-                "embedding_dim": [64, 128],
+                "embedding_dim": [64, 128, 256],
                 "head_hidden_dim": [64, 96],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "dropout": [0.1],
                 "num_outputs": [1]
             }
         },
         "gat": {
             "parameter_grid": {
-                "num_layers": [1, 2, 3],
+                "num_layers": [1, 2, 3, 4],
                 "hidden_channels": [64, 128],
-                "embedding_dim": [64, 128],
+                "hidden_channels": [64, 128],
+                "embedding_dim": [64, 128, 256],
                 "head_hidden_dim": [64, 96],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "dropout": [0.1],
-                "attention_heads": [2, 3],
+                "attention_heads": [2, 3, 4, 5],
                 "num_outputs": [1]
             }
         },
         "gat_edge": {
             "parameter_grid": {
-                "num_layers": [1, 2, 3],
+                "num_layers": [1, 2, 3, 4],
                 "hidden_channels": [64, 128],
-                "embedding_dim": [64, 128],
+                "embedding_dim": [64, 128, 256],
                 "head_hidden_dim": [64, 96],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "dropout": [0.1],
-                "attention_heads": [2, 3],
+                "attention_heads": [2, 3, 4, 5],
                 "num_outputs": [1]
             }
         },
@@ -85,9 +86,9 @@
                 "hidden_channels": [64, 128],
                 "head_hidden_dim": [64, 96],
                 "out_channels": [128],
-                "num_layers": [1, 2, 3],
+                "num_layers": [1, 2, 3, 4],
                 "num_timesteps": [2],
-                "head_layers": [0, 1, 2, 3],
+                "head_layers": [0, 1, 2, 3, 4],
                 "num_outputs": [1],
                 "dropout": [0.1]
             }
@@ -97,7 +98,10 @@
         "pCMC"
     ],
     "splits": [
-        "surfactant_type_v1"
+        "surfactant_type_v1",
+        "leave_F_out",
+        "leave_P_out",
+        "leave_B_Si_out"
     ],
     "representations": {
         "graph": {},

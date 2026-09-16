@@ -123,6 +123,9 @@ class Experiment:
             "training": self.training,
         }
 
+    def __str__(self):
+        return json.dumps(self.to_dict(), indent=4)
+
 
 @dataclass
 class ExperimentRunResult:

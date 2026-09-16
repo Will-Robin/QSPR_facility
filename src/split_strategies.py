@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GroupShuffleSplit
 from src.chemoinformatics import get_murcko_scaffold
+from src.chemoinformatics import get_elements
 
 
 class SplitStrategy:
@@ -123,7 +124,7 @@ class MurckoScaffoldSplitStrategy(SplitStrategy):
         splitter = GroupShuffleSplit(
             n_splits=1,
             test_size=self.test_size + self.validation_size,
-            random_seed=self.random_seed,
+            random_state=self.random_seed,
         )
 
         train_idx, temp_idx = next(
@@ -140,7 +141,7 @@ class MurckoScaffoldSplitStrategy(SplitStrategy):
         splitter = GroupShuffleSplit(
             n_splits=1,
             train_size=val_fraction,
-            random_seed=self.random_seed,
+            random_state=self.random_seed,
         )
 
         validation_idx, test_idx = next(
@@ -161,5 +162,41 @@ class MurckoScaffoldSplitStrategy(SplitStrategy):
         assert train_scaffolds.isdisjoint(validation_scaffolds)
         assert train_scaffolds.isdisjoint(test_scaffolds)
         assert validation_scaffolds.isdisjoint(test_scaffolds)
+
+        return train_ids, validation_ids, test_ids
+
+
+class ElementHoldoutSplitStrategy(SplitStrategy):
+    required_columns = [
+        "compound_id",
+        "SMILES",
+    ]
+
+    def __init__(
+        self,
+        test_elements,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.test_elements = set(test_elements)
+
+    def split(self, df):
+        df = df.copy()
+
+        df["elements"] = df["SMILES"].apply(get_elements)
+
+        test_mask = df["elements"].apply(lambda x: not self.test_elements.isdisjoint(x))
+
+        test_df = df[test_mask]
+        development_df = df[~test_mask]
+
+        train_ids, validation_ids = train_test_split(
+            development_df["compound_id"],
+            test_size=self.validation_size / (1 - len(test_df) / len(df)),
+            random_state=self.random_seed,
+        )
+
+        test_ids = test_df["compound_id"]
 
         return train_ids, validation_ids, test_ids
