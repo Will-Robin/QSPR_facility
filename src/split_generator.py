@@ -9,7 +9,7 @@ class SplitGenerator:
         dataset: SplitDataset,
         seed: int,
     ) -> SplitDataset:
-        development = pd.concat(
+        development_set = pd.concat(
             [
                 dataset.train,
                 dataset.validation,
@@ -18,8 +18,8 @@ class SplitGenerator:
         )
 
         train_df, validation_df = train_test_split(
-            development,
-            test_size=len(dataset.validation) / len(development),
+            development_set,
+            test_size=len(dataset.validation) / len(development_set),
             random_state=seed,
         )
 

@@ -17,18 +17,8 @@ import sqlite3
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-from rdkit import Chem
-from rdkit.Chem.Scaffolds import MurckoScaffold
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GroupShuffleSplit
-from sklearn.model_selection import StratifiedGroupKFold
 from hashlib import sha256
-
-VALID_SPLIT_STRATEGIES = {
-    "random",
-    "stratified",
-    "murcko_scaffold",
-}
+from src.registry import SPLIT_STRATEGIES
 
 
 def create_split_hash(split_definition):
@@ -40,148 +30,24 @@ def create_split_hash(split_definition):
     ).hexdigest()
 
 
-def get_murcko_scaffold(smiles):
-    mol = Chem.MolFromSmiles(smiles)
+def create_splitter(split_definition):
+    strategy = split_definition["strategy"]
 
-    if mol is None:
-        return None
+    splitter_cls = SPLIT_STRATEGIES.get(strategy)
 
-    return MurckoScaffold.MurckoScaffoldSmiles(
-        mol=mol,
-        includeChirality=False,
+    if splitter_cls is None:
+        raise ValueError(f"Unknown strategy: {strategy}")
+
+    return splitter_cls(
+        test_size=split_definition["test_size"],
+        validation_size=split_definition["validation_size"],
+        random_seed=split_definition["random_seed"],
+        stratify_column=split_definition.get("stratify_column"),
     )
-
-
-def random_split(
-    ids,
-    test_size,
-    validation_size,
-    random_state,
-):
-    val_fraction = validation_size / (validation_size + test_size)
-
-    train_ids, temp_ids = train_test_split(
-        ids,
-        test_size=test_size + validation_size,
-        random_state=random_state,
-    )
-
-    validation_ids, test_ids = train_test_split(
-        temp_ids,
-        train_size=val_fraction,
-        random_state=random_state,
-    )
-
-    return train_ids, validation_ids, test_ids
-
-
-def stratified_split(
-    df,
-    ids,
-    stratify_column,
-    test_size,
-    validation_size,
-    random_state,
-):
-    val_fraction = validation_size / (validation_size + test_size)
-
-    train_ids, temp_ids = train_test_split(
-        ids,
-        test_size=test_size + validation_size,
-        stratify=df[stratify_column],
-        random_state=random_state,
-    )
-
-    class_counts = df[stratify_column].value_counts()
-
-    if class_counts.min() < 3:
-        raise ValueError(
-            f"Cannot stratify because some classes have fewer "
-            f"than 3 examples:\n{class_counts}"
-        )
-
-    temp_df = df[df["compound_id"].isin(temp_ids)]
-
-    temp_counts = temp_df[stratify_column].value_counts()
-
-    if temp_counts.min() < 2:
-        raise ValueError(
-            "Temporary validation/test set contains "
-            "classes with fewer than two samples:\n"
-            f"{temp_counts}"
-        )
-
-    validation_ids, test_ids = train_test_split(
-        temp_ids,
-        train_size=val_fraction,
-        stratify=temp_df[stratify_column],
-        random_state=random_state,
-    )
-
-    return train_ids, validation_ids, test_ids
-
-
-def scaffold_split(
-    df,
-    ids,
-    test_size,
-    validation_size,
-    random_state,
-):
-    val_fraction = validation_size / (validation_size + test_size)
-
-    df = df.copy()
-    df["scaffold"] = (
-        df["SMILES"].apply(get_murcko_scaffold).replace("", pd.NA).fillna(df["SMILES"])
-    )
-
-    splitter = GroupShuffleSplit(
-        n_splits=1,
-        test_size=test_size + validation_size,
-        random_state=random_state,
-    )
-
-    train_idx, temp_idx = next(
-        splitter.split(
-            df,
-            groups=df["scaffold"],
-        )
-    )
-
-    train_ids = ids.iloc[train_idx]
-
-    temp_df = df.iloc[temp_idx]
-
-    splitter = GroupShuffleSplit(
-        n_splits=1,
-        train_size=val_fraction,
-        random_state=random_state,
-    )
-
-    validation_idx, test_idx = next(
-        splitter.split(
-            temp_df,
-            groups=temp_df["scaffold"],
-        )
-    )
-
-    validation_ids = temp_df.iloc[validation_idx]["compound_id"]
-    test_ids = temp_df.iloc[test_idx]["compound_id"]
-
-    # check for leakage
-    train_scaffolds = set(df.iloc[train_idx]["scaffold"])
-    validation_scaffolds = set(temp_df.iloc[validation_idx]["scaffold"])
-    test_scaffolds = set(temp_df.iloc[test_idx]["scaffold"])
-
-    assert train_scaffolds.isdisjoint(validation_scaffolds)
-    assert train_scaffolds.isdisjoint(test_scaffolds)
-    assert validation_scaffolds.isdisjoint(test_scaffolds)
-
-    return train_ids, validation_ids, test_ids
 
 
 def validate_split_definition(split_definition):
-    if split_definition["strategy"] not in VALID_SPLIT_STRATEGIES:
+    if split_definition["strategy"] not in SPLIT_STRATEGIES:
         raise ValueError(f"Unknown strategy: {split_definition['strategy']}")
 
     test_size = split_definition["test_size"]
@@ -194,23 +60,8 @@ def validate_split_definition(split_definition):
         raise ValueError("test_size + validation_size must be less than 1")
 
 
-def get_required_columns(split_definition):
-    strategy = split_definition["strategy"]
-
-    columns = ["compound_id"]
-    stratify_column = split_definition.get("stratify_column")
-
-    if strategy == "murcko_scaffold":
-        columns.append("SMILES")
-
-    if strategy == "stratified":
-        columns.append(stratify_column)
-
-    return columns
-
-
-def load_split_data(conn, split_definition):
-    columns = get_required_columns(split_definition)
+def load_split_data(conn, splitter):
+    columns = splitter.required_columns
 
     return pd.read_sql_query(
         f"""
@@ -224,45 +75,9 @@ def load_split_data(conn, split_definition):
 
 
 def generate_split(df, split_definition):
-    ids = df["compound_id"]
+    splitter = create_splitter(split_definition)
 
-    strategy = split_definition["strategy"]
-    test_size = split_definition["test_size"]
-    validation_size = split_definition["validation_size"]
-    random_state = split_definition["random_seed"]
-    stratify_column = split_definition.get("stratify_column")
-
-    if strategy == "random":
-        train_ids, validation_ids, test_ids = random_split(
-            ids,
-            test_size,
-            validation_size,
-            random_state,
-        )
-
-    elif strategy == "stratified":
-        train_ids, validation_ids, test_ids = stratified_split(
-            df,
-            ids,
-            stratify_column,
-            test_size,
-            validation_size,
-            random_state,
-        )
-
-    elif strategy == "murcko_scaffold":
-        train_ids, validation_ids, test_ids = scaffold_split(
-            df,
-            ids,
-            test_size,
-            validation_size,
-            random_state,
-        )
-
-    else:
-        raise ValueError(f"Unknown strategy: {strategy}")
-
-    return train_ids, validation_ids, test_ids
+    return splitter.split(df)
 
 
 def build_split_dataframe(
@@ -274,7 +89,7 @@ def build_split_dataframe(
     split_definition,
 ):
     strategy = split_definition["strategy"]
-    random_state = split_definition["random_seed"]
+    random_seed = split_definition["random_seed"]
 
     df_splits = pd.concat(
         [
@@ -288,7 +103,7 @@ def build_split_dataframe(
     df_splits["split_name"] = split_name
     df_splits["split_strategy"] = strategy
 
-    df_splits["random_seed"] = random_state
+    df_splits["random_seed"] = random_seed
     df_splits["split_hash"] = split_hash
 
     return df_splits
@@ -358,9 +173,10 @@ def prepare_split(ml_database, split_name, split_definition):
     validate_split_definition(split_definition)
 
     split_hash = create_split_hash(split_definition)
+    splitter = create_splitter(split_definition)
 
     with sqlite3.connect(ml_database) as conn:
-        df = load_split_data(conn, split_definition)
+        df = load_split_data(conn, splitter)
         train_ids, validation_ids, test_ids = generate_split(df, split_definition)
         df_splits = build_split_dataframe(
             train_ids,

@@ -342,6 +342,8 @@ class ExperimentRunner:
             target=experiment.target,
         )
 
+        # NOTE: the test and validation sets will be merged in the code below!
+        # This obviates the the validation set created during train/test split generation.
         split_generator = SplitGenerator()
 
         if experiment.cv_strategy is None:
