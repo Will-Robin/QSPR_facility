@@ -43,6 +43,7 @@ def analysis_1(conn):
         group.boxplot(column="rmse", by="model", ax=a)
         a.set_ylabel("RMSE")
         a.set_xlabel("Model")
+        a.set_title(f"{c} RMSE")
     plt.tight_layout()
     plt.show()
 
