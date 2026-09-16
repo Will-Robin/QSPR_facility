@@ -1,13 +1,15 @@
 experiment_name = "gin_edge_0268"
-split_name = "surfactant_type_v1"
+split_name = "leave_B_Si_out"
 target = "pCMC"
 featurizer = "graph"
 model = "gin_edge"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
 
 [featurizer_parameters]
 
 [parameters]
-num_layers = 3
+num_layers = 1
 hidden_channels = 64
 embedding_dim = 128
 head_hidden_dim = 64

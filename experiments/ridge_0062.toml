@@ -1,0 +1,14 @@
+experiment_name = "ridge_0062"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "ridge"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+alpha = 1.0
+
+[training]

@@ -1,0 +1,14 @@
+experiment_name = "lasso_0065"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "lasso"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+alpha = 10.0
+
+[training]

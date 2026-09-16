@@ -1,0 +1,17 @@
+experiment_name = "svr_0123"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "ecfp"
+model = "svr"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+radius = 1
+n_bits = 1024
+count_based = false
+
+[parameters]
+kernel = "rbf"
+
+[training]

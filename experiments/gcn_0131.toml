@@ -1,0 +1,24 @@
+experiment_name = "gcn_0131"
+split_name = "leave_F_out"
+target = "pCMC"
+featurizer = "graph"
+model = "gcn"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+hidden_channels = 128
+num_layers = 1
+embedding_dim = 128
+head_hidden_dim = 64
+head_layers = 0
+dropout = 0.1
+num_outputs = 1
+
+[training]
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 64
+include_validation = true

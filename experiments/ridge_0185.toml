@@ -1,0 +1,14 @@
+experiment_name = "ridge_0185"
+split_name = "leave_F_out"
+target = "pCMC"
+featurizer = "descriptor"
+model = "ridge"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+alpha = 10.0
+
+[training]

@@ -1,17 +1,19 @@
 experiment_name = "gin_0141"
-split_name = "surfactant_type_v1"
+split_name = "leave_F_out"
 target = "pCMC"
 featurizer = "graph"
 model = "gin"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
 
 [featurizer_parameters]
 
 [parameters]
-num_layers = 2
+num_layers = 4
 hidden_channels = 64
-embedding_dim = 128
-head_hidden_dim = 96
-head_layers = 0
+embedding_dim = 256
+head_hidden_dim = 64
+head_layers = 2
 dropout = 0.1
 num_outputs = 1
 

@@ -1,0 +1,16 @@
+experiment_name = "linear_0082"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "ecfp"
+model = "linear"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+radius = 4
+n_bits = 2048
+count_based = false
+
+[parameters]
+
+[training]

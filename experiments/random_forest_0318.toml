@@ -1,0 +1,14 @@
+experiment_name = "random_forest_0318"
+split_name = "leave_B_Si_out"
+target = "pCMC"
+featurizer = "descriptor"
+model = "random_forest"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+n_estimators = 50
+
+[training]

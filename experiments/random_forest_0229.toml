@@ -1,0 +1,17 @@
+experiment_name = "random_forest_0229"
+split_name = "leave_F_out"
+target = "pCMC"
+featurizer = "ecfp"
+model = "random_forest"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+radius = 4
+n_bits = 1024
+count_based = false
+
+[parameters]
+n_estimators = 1000
+
+[training]

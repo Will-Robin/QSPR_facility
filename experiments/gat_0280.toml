@@ -1,0 +1,25 @@
+experiment_name = "gat_0280"
+split_name = "leave_B_Si_out"
+target = "pCMC"
+featurizer = "graph"
+model = "gat"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+num_layers = 1
+hidden_channels = 128
+embedding_dim = 128
+head_hidden_dim = 96
+head_layers = 4
+dropout = 0.1
+attention_heads = 2
+num_outputs = 1
+
+[training]
+learning_rate = 0.001
+n_epochs = 300
+batch_size = 64
+include_validation = true

@@ -1,0 +1,13 @@
+experiment_name = "linear_0061"
+split_name = "surfactant_type_v1"
+target = "pCMC"
+featurizer = "descriptor"
+model = "linear"
+cv_strategy = "repeated_holdout"
+cv_repeats = 5
+
+[featurizer_parameters]
+
+[parameters]
+
+[training]
