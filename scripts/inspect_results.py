@@ -6,17 +6,23 @@ import matplotlib.pyplot as plt
 
 leader_board_query = """
 SELECT
-	e.experiment_name,
-	e.split_name,
-	e.featurizer,
-	e.parameters_json,
-	em.metric,
-	em.value
-FROM experiments e
-JOIN experiment_metrics em USING(experiment_id)
-WHERE em.metric = 'rmse'
-ORDER BY em.value ASC;
+    e.model,
+    e.parameters_json,
+    COUNT(*) AS n_experiments,
+    AVG(esm.value) AS mean_rmse,
+    MIN(esm.value) AS best_rmse,
+    MAX(esm.value) AS worst_rmse
+FROM experiment_summary_metrics esm
+JOIN experiments e
+    USING (experiment_id)
+WHERE
+    esm.metric = 'rmse'
+    AND esm.statistic = 'mean'
+    AND e.split_name = 'leave_Si_out'
+GROUP BY e.model
+ORDER BY mean_rmse ASC;
 """
+
 
 def main():
     config = toml.loads(Path("config.toml").read_text())
@@ -31,8 +37,9 @@ def main():
 
     print(df.head())
     fig, ax = plt.subplots()
-    ax.hist(df.value)
+    ax.hist(df.mean_rmse)
     plt.show()
+
 
 if __name__ == "__main__":
     main()

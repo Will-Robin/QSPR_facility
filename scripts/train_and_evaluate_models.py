@@ -24,6 +24,8 @@ def run_design(filename, ml_database):
         print(f"Skipping {experiment.experiment_name}.")
     else:
         print(f"Running {experiment.experiment_name}.")
+        print(experiment)
+
         run_experiment(experiment, ml_database)
 
 

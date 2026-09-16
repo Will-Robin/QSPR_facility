@@ -8,7 +8,8 @@ query = """
 SELECT DISTINCT
     experiment_hash
 FROM experiments
-WHERE split_name = "surfactant_type_v1";
+WHERE
+    split_name = "surfactant_type_v1";
 """
 
 
@@ -26,11 +27,12 @@ def main():
         fig, ax = plt.subplots()
 
         for i, row in df.iterrows():
-            loss_path = Path("outputs") / row.experiment_hash / "loss.csv"
+            loss_path = Path("outputs") / row.experiment_hash
 
-            if loss_path.is_file():
-                df_loss = pd.read_csv(loss_path)
-                ax.plot(df_loss.epoch, df_loss.loss, label=row.experiment_hash[:5])
+            for file in loss_path.iterdir():
+                if "loss" in file.name:
+                    df_loss = pd.read_csv(file)
+                    ax.plot(df_loss.epoch, df_loss.loss, label=row.experiment_hash[:5])
         plt.legend()
         plt.show()
 

@@ -43,6 +43,7 @@ def create_splitter(split_definition):
         validation_size=split_definition["validation_size"],
         random_seed=split_definition["random_seed"],
         stratify_column=split_definition.get("stratify_column"),
+        test_elements=split_definition.get("test_elements"),
     )
 
 
